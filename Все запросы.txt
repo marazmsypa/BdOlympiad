@@ -1,0 +1,126 @@
+1
+
+select Routes.RouteNumber, Routes.RouteTime, RoutesDays.RouteDaysName, TransportTypes.TransportTypeName from Routes 
+left join RoutesDays on Routes.ActiveDaysId = RoutesDays.RouteDaysId
+left join TransportTypes on Routes.TransportTypeId = TransportTypes.TransportTypeId
+where TransportTypes.TransportTypeName = 'Трамвай'
+order by Routes.RouteNumber;
+
+2
+
+select Routes.RouteNumber, Routes.RouteTime, RoutesDays.RouteDaysName, TransportTypes.TransportTypeName from Routes 
+left join RoutesDays on Routes.ActiveDaysId = RoutesDays.RouteDaysId
+left join TransportTypes on Routes.TransportTypeId = TransportTypes.TransportTypeId
+left join RoutesStations on RoutesStations.RouteId = Routes.RouteId
+where RoutesStations.StationId = 1;
+
+3
+
+select Routes.RouteNumber, Routes.RouteTime, RoutesDays.RouteDaysName, TransportShedule.WorkStartTime, TransportShedule.WorkEndTime, TransportShedule.WorkDate from TransportShedule
+left join Routes on TransportShedule.RouteId = Routes.RouteId
+left join RoutesDays on Routes.ActiveDaysId = RoutesDays.RouteDaysId
+where Routes.RouteId = 1;
+
+4
+
+select Routes.RouteNumber, Routes.RouteTime, RoutesDays.RouteDaysName, TransportTypes.TransportTypeName, Stations.StationName from Routes 
+left join RoutesDays on Routes.ActiveDaysId = RoutesDays.RouteDaysId
+left join TransportTypes on Routes.TransportTypeId = TransportTypes.TransportTypeId
+left join RoutesStations on RoutesStations.RouteId = Routes.RouteId
+left join Stations on RoutesStations.StationId = Stations.StationId
+where Routes.RouteId = 1;
+
+5
+
+select (select count(StationId) from RoutesStations where RoutesStations.StationId = 1) as 'Кол-во маршрутов', Stations.StationPavilion from RoutesStations 
+left join Stations on RoutesStations.StationId = Stations.StationId
+where RoutesStations.StationId = 1
+group by Stations.StationPavilion;
+
+6
+
+select Routes.RouteNumber, Routes.RouteTime, RoutesDays.RouteDaysName, TransportShedule.WorkStartTime, 
+TransportShedule.WorkEndTime, TransportShedule.WorkDate, Stations.StationName, Stations.PreviousStationDistanse,
+stations.PreviousStationTime from TransportShedule
+left join Routes on TransportShedule.RouteId = Routes.RouteId
+left join RoutesDays on Routes.ActiveDaysId = RoutesDays.RouteDaysId
+left join RoutesStations on RoutesStations.RouteId = Routes.RouteId
+left join Stations on RoutesStations.StationId = Stations.StationId
+where TransportShedule.TransportSheduleId = 1;
+
+7
+
+select Routes.RouteNumber, TransportTypes.TransportTypeName, Carriers.CarrierName, Carriers.CarierUrAdr from Routes 
+left join TransportTypes on Routes.TransportTypeId = TransportTypes.TransportTypeId
+left join Carriers on Routes.CarrierId = Carriers.CarrierId
+where Routes.RouteId = 1;
+
+8
+
+select Routes.RouteNumber, Routes.RouteTime, RoutesDays.RouteDaysName, TransportTypes.TransportTypeName, Carriers.CarrierName from Routes 
+left join RoutesDays on Routes.ActiveDaysId = RoutesDays.RouteDaysId
+left join TransportTypes on Routes.TransportTypeId = TransportTypes.TransportTypeId
+left join Carriers on Routes.CarrierId = Carriers.CarrierId
+where Routes.CarrierId = 4;
+
+9
+
+CREATE USER SimpleUser WITHOUT LOGIN;
+
+10
+
+Alter Role Admin Add Member SimpleUser;
+
+11
+
+CREATE ROLE RouteManager;
+
+12 
+
+insert into TransportShedule(
+TransportSheduleId, DriverId, ControllerId, WorkStartTime, WorkEndTime, WorkDate, RouteId
+) values (16, 1, 1, '06:00:00', '20:00:00', '2022-12-17', 1);
+
+13
+
+select Routes.RouteNumber, TransportShedule.WorkStartTime, 
+TransportShedule.WorkEndTime, TransportShedule.WorkDate, SheduleChanges.NewStartTime, SheduleChanges.NewEndTime, SheduleChanges.NewWorkDate,
+SheduleChanges.ChangeReason from TransportShedule
+left join Routes on TransportShedule.RouteId = Routes.RouteId
+left join SheduleChanges on SheduleChanges.SheduleId = TransportShedule.TransportSheduleId
+where SheduleChanges.IsDeclined = 0;
+
+14
+
+select count(TransportShedule.RouteId) as 'Кол-во рейсов за месяц' 
+from TransportShedule where RouteId = 1 and TransportShedule.WorkDate > '2022-12-01'
+and TransportShedule.WorkDate < '2022-12-31';
+
+15
+
+Create view СanceledShedules as 
+select Routes.RouteNumber, TransportShedule.WorkStartTime, 
+TransportShedule.WorkEndTime, TransportShedule.WorkDate, SheduleChanges.NewStartTime, SheduleChanges.NewEndTime, SheduleChanges.NewWorkDate,
+SheduleChanges.ChangeReason from TransportShedule
+left join Routes on TransportShedule.RouteId = Routes.RouteId
+left join SheduleChanges on SheduleChanges.SheduleId = TransportShedule.TransportSheduleId
+where SheduleChanges.IsDeclined = 1;
+
+select * from СanceledShedules;
+
+16
+
+select Routes.RouteNumber,
+sum(case when TransportShedule.WorkDate = '2022-12-05' then 1 else 0 end) as 'кол-во автобусов'
+from TransportShedule
+left join Routes on TransportShedule.RouteId = Routes.RouteId
+group by Routes.RouteNumber;
+
+17
+
+select StaffInfo.StaffName,
+sum(case when TransportShedule.WorkDate > '2022-12-01' and TransportShedule.WorkDate < '2022-12-31' then 1 else 0 end) as 'отработано смен за месяц'
+from TransportShedule
+left join Drivers on Drivers.DriverId = TransportShedule.DriverId
+left join StaffInfo on Drivers.DriverId = StaffInfo.TransportStaffId
+group by StaffInfo.StaffName;
